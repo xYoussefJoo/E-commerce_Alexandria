@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/Tests/">
+    <Project Path="Tests/ECommerceMVC.Tests/ECommerceMVC.Tests.csproj" />
+  </Folder>
+  <Project Path="ECommerceMVC.csproj" />
+</Solution>
