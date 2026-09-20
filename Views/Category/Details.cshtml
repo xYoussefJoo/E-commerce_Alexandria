@@ -1,0 +1,65 @@
+@model ECommerceMVC.Models.Category
+
+@{
+    ViewData["Title"] = Model.Name;
+}
+
+<div class="rounded-2xl bg-gradient-to-br from-brand-950 to-brand-700 p-8 text-white mb-8">
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="flex flex-wrap items-center gap-2 text-sm text-brand-100">
+            <li><a asp-action="Index" class="hover:text-white">Categories</a></li>
+            @if (Model.ParentCategory is not null)
+            {
+                <li>/</li>
+                <li><a asp-action="Details" asp-route-id="@Model.ParentCategory.CategoryId" class="hover:text-white">@Model.ParentCategory.Name</a></li>
+            }
+            <li>/</li>
+            <li class="text-white">@Model.Name</li>
+        </ol>
+    </nav>
+    <h1 class="font-serif text-3xl font-bold mb-2">@Model.Name</h1>
+    <p class="text-brand-100 max-w-xl">@(string.IsNullOrWhiteSpace(Model.Description) ? "No description provided." : Model.Description)</p>
+</div>
+
+@if (User.IsInRole("Admin"))
+{
+    <div class="flex gap-3 mb-6">
+        <a asp-action="Edit" asp-route-id="@Model.CategoryId" hx-boost="false"
+        class="rounded-lg border border-brand-200 bg-white px-4 py-2 text-sm font-semibold text-brand-900 hover:bg-brand-50">Edit</a>
+        <a asp-action="Delete" asp-route-id="@Model.CategoryId" hx-boost="false"
+        class="rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50">Delete</a>
+    </div>
+}
+
+@if (Model.SubCategories.Any())
+{
+    <div class="rounded-2xl border border-brand-100 bg-white p-7 mb-6">
+        <h2 class="font-serif text-lg font-bold text-brand-950 mb-4">Subcategories (@Model.SubCategories.Count)</h2>
+        <div class="flex flex-wrap gap-2">
+            @foreach (var sub in Model.SubCategories.OrderBy(s => s.Name))
+            {
+                <a asp-action="Details" asp-route-id="@sub.CategoryId"
+                class="inline-block rounded-full bg-brand-50 px-4 py-1.5 text-sm font-semibold text-brand-700 hover:bg-brand-100">
+                    @sub.Name
+                </a>
+            }
+        </div>
+    </div>
+}
+
+<div class="rounded-2xl border border-brand-100 bg-white p-7">
+    <h2 class="font-serif text-lg font-bold text-brand-950 mb-5">Books (@Model.Products.Count)</h2>
+    @if (!Model.Products.Any())
+    {
+        <p class="text-ink/60">No books assigned to this category yet.</p>
+    }
+    else
+    {
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
+            @foreach (var product in Model.Products.OrderBy(p => p.Name))
+            {
+                <partial name="~/Views/Product/_ProductCard.cshtml" model="product" />
+            }
+        </div>
+    }
+</div>

@@ -1,0 +1,59 @@
+@model ECommerceMVC.Models.CheckoutViewModel
+
+@{
+    ViewData["Title"] = "Checkout";
+}
+
+<div class="mb-8">
+    <h1 class="font-serif text-3xl font-bold text-brand-950">Checkout</h1>
+    <p class="text-ink/60 mt-1">Confirm your order and choose how you'd like to pay.</p>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-[1fr_320px] gap-8">
+    <form asp-action="PlaceOrder" method="post" class="bg-white rounded-2xl border border-brand-100 p-6 space-y-5">
+        <div asp-validation-summary="All" class="text-sm text-red-600"></div>
+
+        <div>
+            <label asp-for="ShippingAddress" class="block text-sm font-semibold text-brand-950 mb-1"></label>
+            <textarea asp-for="ShippingAddress" rows="3"
+                      class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-700 focus:ring-1 focus:ring-brand-700 focus:outline-none"
+                      placeholder="Street, city, postal code"></textarea>
+            <span asp-validation-for="ShippingAddress" class="text-xs text-red-600"></span>
+        </div>
+
+        <div>
+            <label class="block text-sm font-semibold text-brand-950 mb-2">Payment method</label>
+            <div class="space-y-2">
+                @foreach (var method in Enum.GetValues<ECommerceMVC.Models.PaymentMethod>())
+                {
+                    <label class="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm cursor-pointer hover:bg-brand-50">
+                        <input type="radio" asp-for="PaymentMethod" value="@method" checked="@(Model.PaymentMethod == method)" class="text-brand-700 focus:ring-brand-700" />
+                        @method
+                    </label>
+                }
+            </div>
+        </div>
+
+        <button type="submit"
+                class="w-full inline-flex items-center justify-center rounded-lg bg-gradient-to-br from-brand-700 to-brand-900 px-4 py-2.5 text-sm font-semibold text-white shadow transition hover:-translate-y-0.5 hover:shadow-lg">
+            Place Order
+        </button>
+    </form>
+
+    <div class="bg-white rounded-2xl border border-brand-100 p-6 h-fit">
+        <h3 class="font-serif text-lg font-bold text-brand-950 mb-4">Order Summary</h3>
+        <div class="space-y-2">
+            @foreach (var item in Model.Items)
+            {
+                <div class="flex justify-between text-sm">
+                    <span class="text-ink/70">@item.Product.Name &times; @item.Quantity</span>
+                    <span class="font-semibold text-brand-950">@((item.Product.Price * item.Quantity).ToString("C"))</span>
+                </div>
+            }
+        </div>
+        <div class="border-t border-brand-100 mt-4 pt-4 flex justify-between">
+            <span class="font-semibold text-brand-950">Total</span>
+            <span class="font-bold text-brand-700">@Model.Total.ToString("C")</span>
+        </div>
+    </div>
+</div>

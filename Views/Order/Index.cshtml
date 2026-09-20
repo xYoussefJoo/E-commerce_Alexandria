@@ -1,0 +1,40 @@
+@model List<ECommerceMVC.Models.Order>
+
+@{
+    ViewData["Title"] = "My Orders";
+}
+
+<div class="mb-8">
+    <h1 class="font-serif text-3xl font-bold text-brand-950">My Orders</h1>
+    <p class="text-ink/60 mt-1">Your order history.</p>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="text-center py-16 bg-white rounded-2xl border border-brand-100">
+        <h3 class="font-serif text-lg font-bold text-brand-950">No orders yet</h3>
+        <p class="mt-1 text-sm text-ink/60">Once you place an order, it'll show up here.</p>
+        <a asp-controller="Product" asp-action="Index"
+           class="mt-4 inline-flex items-center rounded-lg bg-gradient-to-br from-brand-700 to-brand-900 px-4 py-2 text-sm font-semibold text-white shadow transition hover:-translate-y-0.5 hover:shadow-lg">
+            Browse Books
+        </a>
+    </div>
+}
+else
+{
+    <div class="bg-white rounded-2xl border border-brand-100 divide-y divide-brand-50">
+        @foreach (var order in Model)
+        {
+            <a asp-action="Details" asp-route-id="@order.OrderId" class="flex items-center justify-between p-4 hover:bg-brand-50">
+                <div>
+                    <p class="text-sm font-semibold text-brand-950">Order #@order.OrderId</p>
+                    <p class="text-xs text-ink/60">@order.OrderDate.ToString("MMM d, yyyy") &middot; @order.PaymentMethod</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-sm font-bold text-brand-950">@order.TotalAmount.ToString("C")</p>
+                    <span class="text-xs font-semibold @(order.Status == ECommerceMVC.Models.OrderStatus.Paid ? "text-green-600" : order.Status == ECommerceMVC.Models.OrderStatus.Cancelled ? "text-red-600" : "text-gold-600")">@order.Status</span>
+                </div>
+            </a>
+        }
+    </div>
+}

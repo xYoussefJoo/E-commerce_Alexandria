@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Alexandria</title>
+    <link rel="icon" type="image/svg+xml" href="~/favicon.svg" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Source+Sans+3:wght@400;600;700&display=swap">
+    <link rel="stylesheet" href="~/css/output.css" asp-append-version="true" />
+    <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.4/dist/htmx.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <style>
+        @@view-transition { navigation: auto; }
+        ::view-transition-old(root) { animation: 150ms ease-out both alexandria-fade-out; }
+        ::view-transition-new(root) { animation: 220ms ease-in both alexandria-fade-in; }
+        @@keyframes alexandria-fade-out { to { opacity: 0; transform: translateY(-4px); } }
+        @@keyframes alexandria-fade-in { from { opacity: 0; transform: translateY(4px); } }
+    </style>
+</head>
+<body class="min-h-screen bg-parchment text-ink font-sans"
+      hx-boost="true" hx-target="#main-content" hx-select="#main-content" hx-swap="innerHTML show:window:top transition:true">
+    <header class="bg-parchment border-b border-brand-100">
+        <nav class="mx-auto max-w-6xl px-4 sm:px-6 flex items-center justify-between h-24">
+            <a asp-area="" asp-controller="Home" asp-action="Index" class="flex items-center gap-3 group">
+                <svg viewBox="0 0 24 24" fill="none" class="h-8 w-8 text-brand-700 shrink-0">
+                    <path d="M2 5c3-1.5 6.5-1.5 9 0v14c-2.5-1.5-6-1.5-9 0V5Z" fill="currentColor"/>
+                    <path d="M22 5c-3-1.5-6.5-1.5-9 0v14c2.5-1.5 6-1.5 9 0V5Z" fill="currentColor"/>
+                </svg>
+                <span class="flex flex-col leading-none">
+                    <span class="font-serif text-xl font-bold text-brand-900 tracking-wide">Alexandria</span>
+                    <span class="hidden sm:block text-[11px] text-gold-600 tracking-widest uppercase mt-0.5">Every story, shelved</span>
+                </span>
+            </a>
+            <div class="flex items-center gap-7">
+                <a asp-area="" asp-controller="Home" asp-action="Index" class="text-sm font-semibold text-brand-900/80 hover:text-brand-700">Home</a>
+                <a asp-area="" asp-controller="Category" asp-action="Index" class="text-sm font-semibold text-brand-900/80 hover:text-brand-700">Categories</a>
+                <a asp-area="" asp-controller="Product" asp-action="Index" class="text-sm font-semibold text-brand-900/80 hover:text-brand-700">Books</a>
+                <a asp-area="" asp-controller="Home" asp-action="Privacy" class="text-sm font-semibold text-brand-900/80 hover:text-brand-700">Privacy</a>
+                @if (User.Identity?.IsAuthenticated == true && !User.IsInRole("Admin"))
+                {
+                    @await Component.InvokeAsync("CartSummary")
+                    <a asp-area="" asp-controller="Order" asp-action="Index" class="text-sm font-semibold text-brand-900/80 hover:text-brand-700">My Orders</a>
+                }
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <a asp-area="Admin" asp-controller="Dashboard" asp-action="Index" class="text-sm font-semibold text-brand-900/80 hover:text-brand-700">Dashboard</a>
+                    }
+                    <form asp-area="" asp-controller="Account" asp-action="Logout" method="post" hx-boost="false" class="inline">
+                        <button type="submit" class="text-sm font-semibold text-brand-900/80 hover:text-brand-700">Logout</button>
+                    </form>
+                }
+                else
+                {
+                    <a asp-area="" asp-controller="Account" asp-action="Register" hx-boost="false" class="text-sm font-semibold text-brand-900/80 hover:text-brand-700">Register</a>
+                    <a asp-area="" asp-controller="Account" asp-action="Login" hx-boost="false" class="text-sm font-semibold rounded-lg bg-brand-700 text-white px-4 py-1.5 hover:bg-brand-900">Login</a>
+                }
+            </div>
+        </nav>
+    </header>
+
+    <main id="main-content" class="mx-auto max-w-6xl px-4 sm:px-6 py-14">
+        @RenderBody()
+
+        @{
+            var successMessage = TempData["Success"] as string;
+            var errorMessage = TempData["Error"] as string;
+        }
+        @if (!string.IsNullOrEmpty(successMessage))
+        {
+            <script>
+                Swal.fire({
+                    icon: 'success',
+                    title: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(successMessage)),
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 2500,
+                    timerProgressBar: true
+                });
+            </script>
+        }
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <script>
+                Swal.fire({
+                    icon: 'error',
+                    title: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(errorMessage)),
+                    confirmButtonColor: '#6b1f2a'
+                });
+            </script>
+        }
+    </main>
+
+    <footer class="border-t border-brand-100 mt-16">
+        <div class="mx-auto max-w-6xl px-4 sm:px-6 py-10 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-2">
+                <svg viewBox="0 0 24 24" fill="none" class="h-5 w-5 text-brand-700">
+                    <path d="M2 5c3-1.5 6.5-1.5 9 0v14c-2.5-1.5-6-1.5-9 0V5Z" fill="currentColor"/>
+                    <path d="M22 5c-3-1.5-6.5-1.5-9 0v14c2.5-1.5 6-1.5 9 0V5Z" fill="currentColor"/>
+                </svg>
+                <span class="font-serif font-bold text-brand-900">Alexandria</span>
+            </div>
+            <p class="text-sm text-ink/60">&copy; 2026 Alexandria Books &middot; <a asp-area="" asp-controller="Home" asp-action="Privacy" class="hover:text-brand-700">Privacy</a></p>
+        </div>
+    </footer>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

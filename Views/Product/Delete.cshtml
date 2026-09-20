@@ -1,0 +1,39 @@
+@model ECommerceMVC.Models.Product
+
+@{
+    ViewData["Title"] = $"Delete {Model.Name}";
+}
+
+<div class="max-w-xl">
+    <h1 class="font-serif text-2xl font-bold text-brand-950 mb-2">Delete Book</h1>
+    <p class="text-ink/60 mb-6">This action cannot be undone.</p>
+
+    <div class="bg-white rounded-2xl border border-brand-100 p-7">
+        <div class="flex gap-5 mb-5">
+            <div class="w-24 aspect-[2/3] rounded-lg overflow-hidden bg-brand-50 shadow-sm shrink-0">
+                @if (!string.IsNullOrWhiteSpace(Model.CoverImageUrl))
+                {
+                    <img src="@Model.CoverImageUrl" alt="Cover of @Model.Name" class="h-full w-full object-cover" />
+                }
+            </div>
+            <div>
+                <div class="text-base font-semibold text-brand-950">@Model.Name</div>
+                @if (!string.IsNullOrWhiteSpace(Model.Author))
+                {
+                    <div class="text-sm text-ink/60">@Model.Author</div>
+                }
+                <div class="text-sm font-bold text-brand-700 mt-2">@Model.Price.ToString("C")</div>
+            </div>
+        </div>
+
+        <form asp-action="Delete" asp-route-id="@Model.ProductId" method="post" hx-boost="false" class="flex gap-3 pt-2 border-t border-brand-50">
+            <button type="submit"
+                    class="mt-5 inline-flex items-center rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow transition hover:bg-red-700">
+                Yes, delete this book
+            </button>
+            <a asp-action="Details" asp-route-id="@Model.ProductId" class="mt-5 inline-flex items-center rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+                Cancel
+            </a>
+        </form>
+    </div>
+</div>

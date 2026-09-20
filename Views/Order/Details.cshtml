@@ -1,0 +1,47 @@
+@model ECommerceMVC.Models.Order
+
+@{
+    ViewData["Title"] = $"Order #{Model.OrderId}";
+}
+
+<nav aria-label="breadcrumb" class="mb-3">
+    <a asp-action="Index" class="text-sm text-brand-700 hover:text-brand-900">&larr; Back to My Orders</a>
+</nav>
+
+<div class="flex items-center justify-between mb-6">
+    <div>
+        <h1 class="font-serif text-3xl font-bold text-brand-950">Order #@Model.OrderId</h1>
+        <p class="text-ink/60 mt-1">Placed @Model.OrderDate.ToString("MMM d, yyyy 'at' h:mm tt")</p>
+    </div>
+    <span class="text-sm font-semibold @(Model.Status == ECommerceMVC.Models.OrderStatus.Paid ? "text-green-600" : Model.Status == ECommerceMVC.Models.OrderStatus.Cancelled ? "text-red-600" : "text-gold-600")">@Model.Status</span>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-[1fr_320px] gap-8">
+    <div class="bg-white rounded-2xl border border-brand-100 divide-y divide-brand-50">
+        @foreach (var item in Model.Items)
+        {
+            <div class="flex justify-between p-4">
+                <div>
+                    <p class="text-sm font-semibold text-brand-950">@item.ProductName</p>
+                    <p class="text-xs text-ink/60">@item.UnitPrice.ToString("C") &times; @item.Quantity</p>
+                </div>
+                <p class="text-sm font-bold text-brand-950">@item.LineTotal.ToString("C")</p>
+            </div>
+        }
+    </div>
+
+    <div class="bg-white rounded-2xl border border-brand-100 p-6 h-fit space-y-4">
+        <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-ink/40">Shipping Address</p>
+            <p class="text-sm text-ink/80 mt-1">@Model.ShippingAddress</p>
+        </div>
+        <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-ink/40">Payment Method</p>
+            <p class="text-sm text-ink/80 mt-1">@Model.PaymentMethod</p>
+        </div>
+        <div class="border-t border-brand-100 pt-4 flex justify-between">
+            <span class="font-semibold text-brand-950">Total</span>
+            <span class="font-bold text-brand-700">@Model.TotalAmount.ToString("C")</span>
+        </div>
+    </div>
+</div>

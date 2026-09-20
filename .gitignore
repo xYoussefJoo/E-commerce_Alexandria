@@ -1,0 +1,36 @@
+## .NET
+bin/
+obj/
+out/
+
+## Visual Studio / Rider / VS Code
+.vs/
+.idea/
+.vscode/
+*.user
+*.suo
+
+## Build results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+
+## Test results
+[Tt]est[Rr]esult*/
+*.trx
+
+## User secrets / local config
+appsettings.*.local.json
+secrets.json
+
+## Tailwind CLI binary — 112MB, exceeds GitHub's 100MB file limit.
+## Download from https://github.com/tailwindlabs/tailwindcss/releases if you need to rebuild wwwroot/css/output.css.
+tailwindcss.exe
+
+## Logs
+*.log
+
+## OS files
+.DS_Store
+Thumbs.db

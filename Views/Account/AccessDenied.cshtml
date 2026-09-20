@@ -1,0 +1,13 @@
+@{
+    ViewData["Title"] = "Access Denied";
+}
+
+<div class="max-w-md mx-auto text-center py-16">
+    <div class="mx-auto h-14 w-14 rounded-2xl bg-red-50 flex items-center justify-center text-red-600 text-2xl font-bold mb-5">!</div>
+    <h1 class="font-serif text-2xl font-bold text-brand-950 mb-2">Access Denied</h1>
+    <p class="text-ink/60 mb-6">You don't have permission to view this page.</p>
+    <a asp-controller="Home" asp-action="Index"
+       class="inline-flex items-center rounded-lg bg-gradient-to-br from-brand-700 to-brand-900 px-5 py-2.5 text-sm font-semibold text-white shadow transition hover:-translate-y-0.5 hover:shadow-lg">
+        Back to Home
+    </a>
+</div>

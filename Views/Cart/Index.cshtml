@@ -1,0 +1,63 @@
+@model List<ECommerceMVC.Models.CartItem>
+
+@{
+    ViewData["Title"] = "Your Cart";
+}
+
+<div class="mb-8">
+    <h1 class="font-serif text-3xl font-bold text-brand-950">Your Cart</h1>
+    <p class="text-ink/60 mt-1">Review your books before checking out.</p>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="text-center py-16 bg-white rounded-2xl border border-brand-100">
+        <h3 class="font-serif text-lg font-bold text-brand-950">Your cart is empty</h3>
+        <p class="mt-1 text-sm text-ink/60">Browse the catalog and add a book to get started.</p>
+        <a asp-controller="Product" asp-action="Index"
+           class="mt-4 inline-flex items-center rounded-lg bg-gradient-to-br from-brand-700 to-brand-900 px-4 py-2 text-sm font-semibold text-white shadow transition hover:-translate-y-0.5 hover:shadow-lg">
+            Browse Books
+        </a>
+    </div>
+}
+else
+{
+    <div class="bg-white rounded-2xl border border-brand-100 divide-y divide-brand-50">
+        @foreach (var item in Model)
+        {
+            <div class="flex items-center gap-4 p-4">
+                <div class="h-16 w-12 rounded overflow-hidden bg-brand-50 shrink-0">
+                    @if (!string.IsNullOrWhiteSpace(item.Product.CoverImageUrl))
+                    {
+                        <img src="@item.Product.CoverImageUrl" alt="Cover of @item.Product.Name" class="h-full w-full object-cover" />
+                    }
+                </div>
+                <div class="flex-1 min-w-0">
+                    <a asp-controller="Product" asp-action="Details" asp-route-id="@item.ProductId" class="text-sm font-semibold text-brand-950 hover:text-brand-700">@item.Product.Name</a>
+                    <p class="text-xs text-ink/60">@item.Product.Price.ToString("C") each</p>
+                </div>
+                <form asp-action="UpdateQuantity" method="post" class="flex items-center gap-2">
+                    <input type="hidden" name="cartItemId" value="@item.CartItemId" />
+                    <input type="number" name="quantity" value="@item.Quantity" min="0" max="@item.Product.Stock"
+                           class="w-16 rounded-lg border border-gray-300 px-2 py-1 text-sm text-center" />
+                    <button type="submit" class="text-xs font-semibold text-brand-700 hover:text-brand-900">Update</button>
+                </form>
+                <p class="w-24 text-right text-sm font-bold text-brand-950">@((item.Product.Price * item.Quantity).ToString("C"))</p>
+                <form asp-action="Remove" method="post">
+                    <input type="hidden" name="cartItemId" value="@item.CartItemId" />
+                    <button type="submit" class="text-xs font-semibold text-red-600 hover:text-red-800">Remove</button>
+                </form>
+            </div>
+        }
+    </div>
+
+    <div class="mt-6 flex items-center justify-between">
+        <p class="text-lg font-bold text-brand-950">
+            Total: @Model.Sum(i => i.Product.Price * i.Quantity).ToString("C")
+        </p>
+        <a asp-action="Checkout"
+           class="inline-flex items-center rounded-lg bg-gradient-to-br from-brand-700 to-brand-900 px-5 py-2.5 text-sm font-semibold text-white shadow transition hover:-translate-y-0.5 hover:shadow-lg">
+            Proceed to Checkout
+        </a>
+    </div>
+}

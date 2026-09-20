@@ -1,0 +1,53 @@
+@model IEnumerable<ECommerceMVC.Models.Category>
+
+@{
+    ViewData["Title"] = "Categories";
+}
+
+<div class="flex flex-wrap items-center justify-between gap-4 mb-8">
+    <div>
+        <h1 class="font-serif text-3xl font-bold text-brand-950">Categories</h1>
+        <p class="text-ink/60 mt-1">Browse the shelves.</p>
+    </div>
+    <a asp-action="Create" hx-boost="false"
+       class="inline-flex items-center rounded-lg bg-gradient-to-br from-brand-700 to-brand-900 px-4 py-2 text-sm font-semibold text-white shadow transition hover:-translate-y-0.5 hover:shadow-lg">
+        + New Category
+    </a>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="text-center py-16 bg-white rounded-2xl border border-brand-100">
+        <div class="mx-auto h-12 w-12 rounded-xl bg-gradient-to-br from-brand-700 to-brand-900 flex items-center justify-center text-white font-bold text-lg">?</div>
+        <h3 class="mt-4 font-serif text-lg font-bold text-brand-950">No categories yet</h3>
+        <p class="mt-1 text-sm text-ink/60">Create your first category to start organizing books.</p>
+        <a asp-action="Create" hx-boost="false"
+           class="mt-4 inline-flex items-center rounded-lg bg-gradient-to-br from-brand-700 to-brand-900 px-4 py-2 text-sm font-semibold text-white shadow transition hover:-translate-y-0.5 hover:shadow-lg">
+            + New Category
+        </a>
+    </div>
+}
+else
+{
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        @foreach (var category in Model)
+        {
+            <a asp-action="Details" asp-route-id="@category.CategoryId"
+               class="block rounded-2xl border border-brand-100 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+                <div class="h-11 w-11 rounded-xl bg-gradient-to-br from-brand-700 to-brand-900 flex items-center justify-center text-white font-serif font-bold">
+                    @category.Name.Substring(0, 1).ToUpper()
+                </div>
+                <h3 class="mt-4 font-serif text-base font-bold text-brand-950">@category.Name</h3>
+                <p class="mt-1 text-sm text-ink/60 min-h-10">@(string.IsNullOrWhiteSpace(category.Description) ? "No description provided." : category.Description)</p>
+                @if (category.ParentCategory is not null)
+                {
+                    <span class="inline-block rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700">Sub-category of @category.ParentCategory.Name</span>
+                }
+                else
+                {
+                    <span class="inline-block rounded-full bg-gold-100 px-3 py-1 text-xs font-semibold text-gold-600">Top-level</span>
+                }
+            </a>
+        }
+    </div>
+}

@@ -1,0 +1,7 @@
+@model int
+
+<a asp-area="" asp-controller="Cart" asp-action="Index" class="relative text-sm font-semibold text-brand-900/80 hover:text-brand-700">
+    Cart
+    <span id="cart-badge"
+          class="absolute -top-2 -right-3 inline-flex items-center justify-center h-4 w-4 rounded-full bg-gold-500 text-[10px] font-bold text-white @(Model > 0 ? "" : "hidden")">@Model</span>
+</a>

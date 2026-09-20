@@ -1,0 +1,141 @@
+@model ECommerceMVC.Models.HomeIndexViewModel
+
+@{
+    ViewData["Title"] = "Home";
+}
+
+<!-- Hero -->
+<section class="-mx-4 sm:-mx-6 -mt-10 mb-16 rounded-b-3xl bg-gradient-to-br from-brand-950 via-brand-900 to-brand-700 px-4 sm:px-6 pt-16 pb-14 text-white overflow-hidden relative">
+    <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+        <div>
+            <span class="inline-block rounded-full bg-white/10 px-4 py-1.5 text-xs font-semibold tracking-widest uppercase text-gold-400 mb-5">Alexandria Books</span>
+            <h1 class="font-serif text-4xl sm:text-5xl font-bold leading-tight mb-5">Every story,<br />shelved.</h1>
+            <p class="text-brand-100 text-lg max-w-md mb-8">
+                A curated collection of fiction, history, biography, and ideas worth reading twice —
+                gathered like the library that started it all.
+            </p>
+            <div class="flex flex-wrap gap-3">
+                <a asp-controller="Category" asp-action="Index"
+                   class="inline-flex items-center rounded-lg bg-gold-500 px-6 py-3 text-sm font-semibold text-brand-950 shadow transition hover:-translate-y-0.5 hover:bg-gold-400 hover:shadow-lg">
+                    Browse Categories
+                </a>
+                <a href="#featured-books" hx-boost="false"
+                   class="inline-flex items-center rounded-lg border border-white/30 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10">
+                    See Featured Books
+                </a>
+            </div>
+        </div>
+
+        @if (Model.FeaturedBooks.Any())
+        {
+            <div class="hidden lg:flex justify-center items-end">
+                <div class="flex -space-x-10">
+                    @foreach (var book in Model.FeaturedBooks.Take(4))
+                    {
+                        <div class="w-32 aspect-[2/3] rounded-lg overflow-hidden shadow-2xl ring-1 ring-white/20 transition hover:-translate-y-3 hover:z-10"
+                             style="transform: rotate(@(Model.FeaturedBooks.IndexOf(book) % 2 == 0 ? "-4deg" : "4deg"))">
+                            @if (!string.IsNullOrWhiteSpace(book.CoverImageUrl))
+                            {
+                                <img src="@book.CoverImageUrl" alt="Cover of @book.Name" class="h-full w-full object-cover" />
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</section>
+
+<!-- Shop by category -->
+<section class="mb-16">
+    <div class="flex items-end justify-between mb-6">
+        <div>
+            <h2 class="font-serif text-2xl font-bold text-brand-950">Shop by Category</h2>
+            <p class="text-ink/60 mt-1">Find your next read by genre.</p>
+        </div>
+        <a asp-controller="Category" asp-action="Index" class="text-sm font-semibold text-brand-700 hover:text-brand-900">View all &rarr;</a>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        @foreach (var category in Model.FeaturedCategories)
+        {
+            var bookCount = category.Products.Count + category.SubCategories.Sum(s => s.Products.Count);
+            <a asp-controller="Category" asp-action="Details" asp-route-id="@category.CategoryId"
+               class="block rounded-2xl border border-brand-100 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+                @if (!string.IsNullOrWhiteSpace(category.ImageUrl))
+                {
+                    <div class="h-24 -mx-6 -mt-6 mb-4 rounded-t-2xl overflow-hidden">
+                        <img src="@category.ImageUrl" alt="@category.Name" class="h-full w-full object-cover" loading="lazy" />
+                    </div>
+                }
+                else
+                {
+                    <div class="h-11 w-11 rounded-xl bg-gradient-to-br from-brand-700 to-brand-900 flex items-center justify-center text-white font-serif font-bold">
+                        @category.Name.Substring(0, 1).ToUpper()
+                    </div>
+                }
+                <h3 class="mt-4 font-serif text-base font-bold text-brand-950">@category.Name</h3>
+                <p class="mt-1 text-sm text-ink/60 min-h-10">@category.Description</p>
+                <span class="inline-block rounded-full bg-gold-100 px-3 py-1 text-xs font-semibold text-gold-600">@bookCount book@(bookCount == 1 ? "" : "s")</span>
+            </a>
+        }
+    </div>
+</section>
+
+<!-- Featured books -->
+<section id="featured-books" class="mb-16 scroll-mt-6">
+    <div class="mb-6">
+        <h2 class="font-serif text-2xl font-bold text-brand-950">Featured Books</h2>
+        <p class="text-ink/60 mt-1">A taste of what's on the shelves right now.</p>
+    </div>
+
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
+        @foreach (var book in Model.FeaturedBooks)
+        {
+            <a asp-controller="Product" asp-action="Details" asp-route-id="@book.ProductId"
+               class="group block">
+                <div class="aspect-[2/3] rounded-lg overflow-hidden bg-brand-50 shadow-sm transition group-hover:shadow-lg group-hover:-translate-y-1">
+                    @if (!string.IsNullOrWhiteSpace(book.CoverImageUrl))
+                    {
+                        <img src="@book.CoverImageUrl" alt="Cover of @book.Name" class="h-full w-full object-cover" loading="lazy" />
+                    }
+                </div>
+                <h3 class="mt-3 text-sm font-semibold text-brand-950 leading-snug">@book.Name</h3>
+                @if (!string.IsNullOrWhiteSpace(book.Author))
+                {
+                    <p class="text-xs text-ink/60">@book.Author</p>
+                }
+                <p class="mt-1 text-sm font-bold text-brand-700">@book.Price.ToString("C")</p>
+            </a>
+        }
+    </div>
+</section>
+
+<!-- Trust strip -->
+<section class="mb-16 grid grid-cols-1 sm:grid-cols-3 gap-6">
+    <div class="rounded-2xl border border-brand-100 bg-white p-6">
+        <div class="h-10 w-10 rounded-lg bg-gold-100 flex items-center justify-center text-gold-600 font-bold">✓</div>
+        <h3 class="mt-3 font-serif font-bold text-brand-950">Curated Selection</h3>
+        <p class="mt-1 text-sm text-ink/60">Every title picked for a reason, not just stocked.</p>
+    </div>
+    <div class="rounded-2xl border border-brand-100 bg-white p-6">
+        <div class="h-10 w-10 rounded-lg bg-gold-100 flex items-center justify-center text-gold-600 font-bold">✓</div>
+        <h3 class="mt-3 font-serif font-bold text-brand-950">Real Editions</h3>
+        <p class="mt-1 text-sm text-ink/60">Genuine titles and covers, sourced from Open Library.</p>
+    </div>
+    <div class="rounded-2xl border border-brand-100 bg-white p-6">
+        <div class="h-10 w-10 rounded-lg bg-gold-100 flex items-center justify-center text-gold-600 font-bold">✓</div>
+        <h3 class="mt-3 font-serif font-bold text-brand-950">Always Growing</h3>
+        <p class="mt-1 text-sm text-ink/60">New categories and titles added as the shelves fill in.</p>
+    </div>
+</section>
+
+<!-- CTA -->
+<section class="rounded-2xl bg-brand-50 p-10 text-center">
+    <h2 class="font-serif text-2xl font-bold text-brand-950">Ready to find your next read?</h2>
+    <p class="text-ink/60 mt-2 mb-6">Start browsing the full collection.</p>
+    <a asp-controller="Category" asp-action="Index"
+       class="inline-flex items-center rounded-lg bg-gradient-to-br from-brand-700 to-brand-900 px-6 py-3 text-sm font-semibold text-white shadow transition hover:-translate-y-0.5 hover:shadow-lg">
+        Browse Categories
+    </a>
+</section>

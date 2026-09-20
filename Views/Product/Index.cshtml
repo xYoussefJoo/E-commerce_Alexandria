@@ -1,0 +1,43 @@
+@model IEnumerable<ECommerceMVC.Models.Product>
+
+@{
+    ViewData["Title"] = "Books";
+}
+
+<div class="flex flex-wrap items-center justify-between gap-4 mb-8">
+    <div>
+        <h1 class="font-serif text-3xl font-bold text-brand-950">Books</h1>
+        <p class="text-ink/60 mt-1">Manage the full catalog.</p>
+    </div>
+    @if (User.IsInRole("Admin"))
+    {
+        <a asp-action="Create" hx-boost="false"
+           class="inline-flex items-center rounded-lg bg-gradient-to-br from-brand-700 to-brand-900 px-4 py-2 text-sm font-semibold text-white shadow transition hover:-translate-y-0.5 hover:shadow-lg">
+            + New Book
+        </a>
+    }
+</div>
+
+@if (!Model.Any())
+{
+    <div class="text-center py-16 bg-white rounded-2xl border border-brand-100">
+        <h3 class="font-serif text-lg font-bold text-brand-950">No books yet</h3>
+        <p class="mt-1 text-sm text-ink/60">Add your first book to the catalog.</p>
+        @if (User.IsInRole("Admin"))
+        {
+            <a asp-action="Create" hx-boost="false"
+               class="mt-4 inline-flex items-center rounded-lg bg-gradient-to-br from-brand-700 to-brand-900 px-4 py-2 text-sm font-semibold text-white shadow transition hover:-translate-y-0.5 hover:shadow-lg">
+                + New Book
+            </a>
+        }
+    </div>
+}
+else
+{
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6">
+        @foreach (var product in Model)
+        {
+            <partial name="_ProductCard" model="product" />
+        }
+    </div>
+}
