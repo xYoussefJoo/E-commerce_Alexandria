@@ -1,4 +1,4 @@
-@model IEnumerable<ECommerceMVC.Models.Category>
+@model ECommerceMVC.Models.PagedResult<ECommerceMVC.Models.Category>
 
 @{
     ViewData["Title"] = "Categories";
@@ -15,7 +15,7 @@
     </a>
 </div>
 
-@if (!Model.Any())
+@if (!Model.Items.Any())
 {
     <div class="text-center py-16 bg-white rounded-2xl border border-brand-100">
         <div class="mx-auto h-12 w-12 rounded-xl bg-gradient-to-br from-brand-700 to-brand-900 flex items-center justify-center text-white font-bold text-lg">?</div>
@@ -30,7 +30,7 @@
 else
 {
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        @foreach (var category in Model)
+        @foreach (var category in Model.Items)
         {
             <a asp-action="Details" asp-route-id="@category.CategoryId"
                class="block rounded-2xl border border-brand-100 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
@@ -50,4 +50,13 @@ else
             </a>
         }
     </div>
+
+    {
+        ViewData["PageNumber"] = Model.PageNumber;
+        ViewData["TotalPages"] = Model.TotalPages;
+        ViewData["HasPreviousPage"] = Model.HasPreviousPage;
+        ViewData["HasNextPage"] = Model.HasNextPage;
+        ViewData["Action"] = "Index";
+    }
+    <partial name="_Pagination" />
 }

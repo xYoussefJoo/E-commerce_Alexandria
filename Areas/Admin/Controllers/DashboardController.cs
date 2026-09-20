@@ -59,7 +59,7 @@ public class DashboardController : Controller
             .Select(g => (g.Method, g.Count))
             .ToList();
 
-        var since = DateTime.Now.Date.AddDays(-13);
+        var since = DateTime.UtcNow.Date.AddDays(-13);
         var rawRevenueByDay = await revenueOrders
             .Where(o => o.OrderDate >= since)
             .GroupBy(o => o.OrderDate.Date)

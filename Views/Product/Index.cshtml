@@ -1,4 +1,4 @@
-@model IEnumerable<ECommerceMVC.Models.Product>
+@model ECommerceMVC.Models.PagedResult<ECommerceMVC.Models.Product>
 
 @{
     ViewData["Title"] = "Books";
@@ -18,7 +18,7 @@
     }
 </div>
 
-@if (!Model.Any())
+@if (!Model.Items.Any())
 {
     <div class="text-center py-16 bg-white rounded-2xl border border-brand-100">
         <h3 class="font-serif text-lg font-bold text-brand-950">No books yet</h3>
@@ -35,9 +35,18 @@
 else
 {
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6">
-        @foreach (var product in Model)
+        @foreach (var product in Model.Items)
         {
             <partial name="_ProductCard" model="product" />
         }
     </div>
+
+    {
+        ViewData["PageNumber"] = Model.PageNumber;
+        ViewData["TotalPages"] = Model.TotalPages;
+        ViewData["HasPreviousPage"] = Model.HasPreviousPage;
+        ViewData["HasNextPage"] = Model.HasNextPage;
+        ViewData["Action"] = "Index";
+    }
+    <partial name="_Pagination" />
 }

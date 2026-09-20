@@ -1,4 +1,5 @@
 using ECommerceMVC.Data;
+using ECommerceMVC.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -18,14 +19,17 @@ public class OrderController : Controller
         _userManager = userManager;
     }
 
+    private const int PageSize = 10;
+
     // GET: /Order
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(int page = 1)
     {
         var userId = _userManager.GetUserId(User)!;
-        var orders = await _context.Orders
+        var query = _context.Orders
             .Where(o => o.UserId == userId)
-            .OrderByDescending(o => o.OrderDate)
-            .ToListAsync();
+            .OrderByDescending(o => o.OrderDate);
+
+        var orders = await PagedResult<Order>.CreateAsync(query, page, PageSize);
 
         return View(orders);
     }

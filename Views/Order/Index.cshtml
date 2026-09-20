@@ -1,4 +1,4 @@
-@model List<ECommerceMVC.Models.Order>
+@model ECommerceMVC.Models.PagedResult<ECommerceMVC.Models.Order>
 
 @{
     ViewData["Title"] = "My Orders";
@@ -9,7 +9,7 @@
     <p class="text-ink/60 mt-1">Your order history.</p>
 </div>
 
-@if (!Model.Any())
+@if (!Model.Items.Any())
 {
     <div class="text-center py-16 bg-white rounded-2xl border border-brand-100">
         <h3 class="font-serif text-lg font-bold text-brand-950">No orders yet</h3>
@@ -23,7 +23,7 @@
 else
 {
     <div class="bg-white rounded-2xl border border-brand-100 divide-y divide-brand-50">
-        @foreach (var order in Model)
+        @foreach (var order in Model.Items)
         {
             <a asp-action="Details" asp-route-id="@order.OrderId" class="flex items-center justify-between p-4 hover:bg-brand-50">
                 <div>
@@ -37,4 +37,13 @@ else
             </a>
         }
     </div>
+
+    {
+        ViewData["PageNumber"] = Model.PageNumber;
+        ViewData["TotalPages"] = Model.TotalPages;
+        ViewData["HasPreviousPage"] = Model.HasPreviousPage;
+        ViewData["HasNextPage"] = Model.HasNextPage;
+        ViewData["Action"] = "Index";
+    }
+    <partial name="_Pagination" />
 }

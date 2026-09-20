@@ -1,0 +1,25 @@
+@{
+    // Untyped on purpose: it's invoked for PagedResult<Product>, PagedResult<Category>, etc.,
+    // and only reads ViewData, so a shared generic model type isn't needed (and wouldn't be
+    // assignable from those anyway - generic classes aren't covariant).
+    var pageNumber = (int)ViewData["PageNumber"]!;
+    var totalPages = (int)ViewData["TotalPages"]!;
+    var hasPrevious = (bool)ViewData["HasPreviousPage"]!;
+    var hasNext = (bool)ViewData["HasNextPage"]!;
+    var action = ViewData["Action"] as string ?? "Index";
+}
+
+@if (totalPages > 1)
+{
+    <nav class="mt-8 flex items-center justify-center gap-2" aria-label="Pagination">
+        <a asp-action="@action" asp-route-page="@(pageNumber - 1)"
+           class="rounded-lg border border-brand-100 px-3 py-1.5 text-sm font-semibold text-brand-950 @(hasPrevious ? "hover:bg-brand-50" : "pointer-events-none opacity-40")">
+            Previous
+        </a>
+        <span class="px-2 text-sm text-ink/60">Page @pageNumber of @totalPages</span>
+        <a asp-action="@action" asp-route-page="@(pageNumber + 1)"
+           class="rounded-lg border border-brand-100 px-3 py-1.5 text-sm font-semibold text-brand-950 @(hasNext ? "hover:bg-brand-50" : "pointer-events-none opacity-40")">
+            Next
+        </a>
+    </nav>
+}

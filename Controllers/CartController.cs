@@ -176,6 +176,9 @@ public class CartController : Controller
             return View("Checkout", vm);
         }
 
+        // Fast-path check for a friendly error message before opening a transaction.
+        // Not authoritative by itself - see the atomic decrement below, which is what
+        // actually prevents two concurrent checkouts from overselling the same stock.
         foreach (var item in items)
         {
             if (item.Quantity > item.Product.Stock)
@@ -188,7 +191,7 @@ public class CartController : Controller
         var order = new Order
         {
             UserId = userId,
-            OrderDate = DateTime.Now,
+            OrderDate = DateTime.UtcNow,
             ShippingAddress = vm.ShippingAddress,
             PaymentMethod = vm.PaymentMethod,
             Status = vm.PaymentMethod == PaymentMethod.CashOnDelivery ? OrderStatus.Pending : OrderStatus.Paid,
@@ -204,13 +207,33 @@ public class CartController : Controller
                 UnitPrice = item.Product.Price,
                 Quantity = item.Quantity
             });
+        }
 
-            item.Product.Stock -= item.Quantity;
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+
+        // A conditional, single-statement UPDATE per product: it only decrements stock
+        // if enough is still available, and the DB evaluates + applies it atomically.
+        // This is what actually closes the race two simultaneous checkouts could hit
+        // between the fast-path check above and the write - unlike loading Stock into
+        // memory and writing it back, this can't lose a concurrent decrement.
+        foreach (var item in items)
+        {
+            var rowsUpdated = await _context.Products
+                .Where(p => p.ProductId == item.ProductId && p.Stock >= item.Quantity)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(p => p.Stock, p => p.Stock - item.Quantity));
+
+            if (rowsUpdated == 0)
+            {
+                await transaction.RollbackAsync();
+                TempData["Error"] = $"'{item.Product.Name}' no longer has enough stock. Please review your cart.";
+                return RedirectToAction(nameof(Index));
+            }
         }
 
         _context.Orders.Add(order);
         _context.CartItems.RemoveRange(items);
         await _context.SaveChangesAsync();
+        await transaction.CommitAsync();
 
         TempData["Success"] = "Order placed! Thank you for shopping with Alexandria.";
         return RedirectToAction("Details", "Order", new { id = order.OrderId });

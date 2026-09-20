@@ -15,13 +15,16 @@ public class CategoryController : Controller
         _context = context;
     }
 
+    private const int PageSize = 15;
+
     // GET: /Category
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(int page = 1)
     {
-        var categories = await _context.Categories
+        var query = _context.Categories
             .Include(c => c.ParentCategory)
-            .OrderBy(c => c.Name)
-            .ToListAsync();
+            .OrderBy(c => c.Name);
+
+        var categories = await PagedResult<Category>.CreateAsync(query, page, PageSize);
 
         return View(categories);
     }

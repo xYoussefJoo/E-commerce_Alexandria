@@ -21,13 +21,16 @@ public class ProductController : Controller
         _environment = environment;
     }
 
+    private const int PageSize = 15;
+
     // GET: /Product
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(int page = 1)
     {
-        var products = await _context.Products
+        var query = _context.Products
             .Include(p => p.Categories)
-            .OrderBy(p => p.Name)
-            .ToListAsync();
+            .OrderBy(p => p.Name);
+
+        var products = await PagedResult<Product>.CreateAsync(query, page, PageSize);
 
         return View(products);
     }
@@ -86,7 +89,7 @@ public class ProductController : Controller
                 CoverImageUrl = uploadedImageUrl ?? vm.CoverImageUrl,
                 Price = vm.Price,
                 Stock = vm.Stock,
-                CreatedAt = DateTime.Now
+                CreatedAt = DateTime.UtcNow
             };
 
             await AttachSelectedCategories(product, vm.SelectedCategoryIds);
@@ -251,6 +254,12 @@ public class ProductController : Controller
             return null;
         }
 
+        if (!await HasValidImageSignatureAsync(file))
+        {
+            ModelState.AddModelError(nameof(ProductFormViewModel.CoverImageFile), "That file doesn't look like a valid image. Only real JPG, PNG, GIF, or WEBP files are allowed.");
+            return null;
+        }
+
         var uploadsFolder = Path.Combine(_environment.WebRootPath, "uploads", "products");
         Directory.CreateDirectory(uploadsFolder);
 
@@ -263,6 +272,32 @@ public class ProductController : Controller
         }
 
         return $"{UploadsRelativePath}/{fileName}";
+    }
+
+    // The extension alone is just a filename string an attacker controls - it doesn't
+    // prove the bytes are actually an image. This checks the real file signature so a
+    // renamed .exe/.html can't be uploaded into wwwroot and served back to visitors.
+    private static async Task<bool> HasValidImageSignatureAsync(IFormFile file)
+    {
+        var header = new byte[12];
+        await using var stream = file.OpenReadStream();
+        var bytesRead = await stream.ReadAsync(header.AsMemory(0, header.Length));
+        if (bytesRead < 4) return false;
+
+        if (header[0] == 0xFF && header[1] == 0xD8 && header[2] == 0xFF) return true; // JPEG
+
+        if (header[0] == 0x89 && header[1] == 0x50 && header[2] == 0x4E && header[3] == 0x47) return true; // PNG
+
+        if (header[0] == 0x47 && header[1] == 0x49 && header[2] == 0x46 && header[3] == 0x38) return true; // GIF87a/GIF89a
+
+        if (bytesRead == 12 &&
+            header[0] == 0x52 && header[1] == 0x49 && header[2] == 0x46 && header[3] == 0x46 && // "RIFF"
+            header[8] == 0x57 && header[9] == 0x45 && header[10] == 0x42 && header[11] == 0x50) // "WEBP"
+        {
+            return true;
+        }
+
+        return false;
     }
 
     // Cleans up a previously-uploaded local file when it's replaced or the product is

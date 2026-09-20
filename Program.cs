@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Security.Cryptography;
 using ECommerceMVC.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -114,17 +115,61 @@ using (var scope = app.Services.CreateScope())
         await roleManager.CreateAsync(new IdentityRole(customerRole));
     }
 
-    const string adminEmail = "admin@alexandria.local";
+    var adminEmail = builder.Configuration["AdminSeed:Email"] ?? "admin@alexandria.local";
     var adminUser = await userManager.FindByEmailAsync(adminEmail);
     if (adminUser is null)
     {
+        var adminPassword = builder.Configuration["AdminSeed:Password"];
+        var generated = string.IsNullOrWhiteSpace(adminPassword);
+        if (generated)
+        {
+            adminPassword = GenerateRandomPassword();
+        }
+
         adminUser = new IdentityUser { UserName = adminEmail, Email = adminEmail, EmailConfirmed = true };
-        var result = await userManager.CreateAsync(adminUser, "Alexandria#2026");
+        var result = await userManager.CreateAsync(adminUser, adminPassword!);
         if (result.Succeeded)
         {
             await userManager.AddToRoleAsync(adminUser, adminRole);
+            if (generated)
+            {
+                app.Logger.LogWarning(
+                    "No AdminSeed:Password configured — generated a one-time password for {Email}: {Password}. " +
+                    "Set AdminSeed:Password (e.g. via 'dotnet user-secrets set') to control this instead.",
+                    adminEmail, adminPassword);
+            }
         }
     }
+}
+
+// Satisfies the password policy configured above (8+ chars, upper, lower, digit, symbol) with
+// a cryptographically random value, used only when no AdminSeed:Password is configured.
+static string GenerateRandomPassword()
+{
+    const string upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+    const string lower = "abcdefghijkmnopqrstuvwxyz";
+    const string digits = "23456789";
+    const string symbols = "!@#$%^&*";
+    const string all = upper + lower + digits + symbols;
+
+    Span<char> chars = stackalloc char[16];
+    chars[0] = upper[RandomNumberGenerator.GetInt32(upper.Length)];
+    chars[1] = lower[RandomNumberGenerator.GetInt32(lower.Length)];
+    chars[2] = digits[RandomNumberGenerator.GetInt32(digits.Length)];
+    chars[3] = symbols[RandomNumberGenerator.GetInt32(symbols.Length)];
+    for (var i = 4; i < chars.Length; i++)
+    {
+        chars[i] = all[RandomNumberGenerator.GetInt32(all.Length)];
+    }
+
+    // Shuffle so the fixed-category prefix isn't predictable.
+    for (var i = chars.Length - 1; i > 0; i--)
+    {
+        var j = RandomNumberGenerator.GetInt32(i + 1);
+        (chars[i], chars[j]) = (chars[j], chars[i]);
+    }
+
+    return new string(chars);
 }
 
 app.Run();
