@@ -17,27 +17,49 @@ public class HomeController : Controller
 
     public async Task<IActionResult> Index()
     {
+        // Everything below is counted and picked in SQL. The old version loaded every product
+        // (twice: once through the categories, once directly) just to show 8 books and a few
+        // counts, which gets slower and heavier as the catalog grows.
         var featuredCategories = await _context.Categories
             .Where(c => c.ParentCategoryId == null)
-            .Include(c => c.Products)
-            .Include(c => c.SubCategories).ThenInclude(s => s.Products)
             .OrderBy(c => c.Name)
             .ToListAsync();
 
-        var allProducts = await _context.Products
-            .Include(p => p.Categories)
+        var bookCounts = await _context.Categories
+            .Where(c => c.ParentCategoryId == null)
+            .Select(c => new
+            {
+                c.CategoryId,
+                Count = c.Products.Count() + c.SubCategories.Sum(s => s.Products.Count())
+            })
+            .ToDictionaryAsync(x => x.CategoryId, x => x.Count);
+
+        // One book per category (the first by name), plus one uncategorized book if any.
+        var featuredIds = await _context.Categories
+            .Where(c => c.Products.Any())
+            .Select(c => c.Products.OrderBy(p => p.Name).Select(p => p.ProductId).First())
+            .Distinct()
             .ToListAsync();
 
-        var featuredBooks = allProducts
-            .GroupBy(p => p.Categories.FirstOrDefault()?.Name ?? "Other")
-            .Select(g => g.OrderBy(p => p.Name).First())
+        var uncategorizedId = await _context.Products
+            .Where(p => !p.Categories.Any())
+            .OrderBy(p => p.Name)
+            .Select(p => (int?)p.ProductId)
+            .FirstOrDefaultAsync();
+
+        if (uncategorizedId is int id) featuredIds.Add(id);
+
+        var featuredBooks = await _context.Products
+            .Include(p => p.Categories)
+            .Where(p => featuredIds.Contains(p.ProductId))
             .OrderBy(p => p.Name)
             .Take(8)
-            .ToList();
+            .ToListAsync();
 
         var model = new HomeIndexViewModel
         {
             FeaturedCategories = featuredCategories,
+            BookCounts = bookCounts,
             FeaturedBooks = featuredBooks
         };
 

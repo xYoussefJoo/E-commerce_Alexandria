@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using ECommerceMVC.Controllers;
 using ECommerceMVC.Data;
+using ECommerceMVC.Services;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -39,6 +40,20 @@ internal static class TestSupport
     public static ProductController CreateProductController(ApplicationDbContext context, IWebHostEnvironment environment)
     {
         var controller = new ProductController(context, environment);
+        Configure(controller, userId: null);
+        return controller;
+    }
+
+    public static OrderController CreateOrderController(ApplicationDbContext context, string userId)
+    {
+        var controller = new OrderController(context, CreateUserManager(context), new OrderStatusService(context));
+        Configure(controller, userId);
+        return controller;
+    }
+
+    // For controllers that only need a DbContext (Category, Admin Dashboard).
+    public static T Configured<T>(T controller) where T : Controller
+    {
         Configure(controller, userId: null);
         return controller;
     }

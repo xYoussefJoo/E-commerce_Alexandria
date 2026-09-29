@@ -23,7 +23,12 @@ public class ProductFormViewModel
     [Display(Name = "Cover Image")]
     public IFormFile? CoverImageFile { get; set; }
 
+    // Upper bound matches the DECIMAL(10,2) column.
+    [Range(typeof(decimal), "0.01", "99999999.99", ParseLimitsInInvariantCulture = true,
+        ErrorMessage = "Price must be greater than 0.")]
     public decimal Price { get; set; }
+
+    [Range(0, int.MaxValue, ErrorMessage = "Stock can't be negative.")]
     public int Stock { get; set; }
 
     public List<int> SelectedCategoryIds { get; set; } = new();

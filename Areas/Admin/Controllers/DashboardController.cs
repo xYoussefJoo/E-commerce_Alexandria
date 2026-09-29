@@ -42,7 +42,11 @@ public class DashboardController : Controller
 
         vm.TotalOrders = await _context.Orders.CountAsync();
         vm.TotalRevenue = await revenueOrders.SumAsync(o => (decimal?)o.TotalAmount) ?? 0m;
-        vm.AverageOrderValue = vm.TotalOrders > 0 ? vm.TotalRevenue / vm.TotalOrders : 0m;
+
+        // Divide by the same set of orders the revenue came from. Dividing non-cancelled
+        // revenue by ALL orders (cancelled included) made the average too low.
+        var revenueOrderCount = await revenueOrders.CountAsync();
+        vm.AverageOrderValue = revenueOrderCount > 0 ? vm.TotalRevenue / revenueOrderCount : 0m;
         vm.TotalCustomers = await _context.Orders.Select(o => o.UserId).Distinct().CountAsync();
 
         vm.OrdersByStatus = (await _context.Orders

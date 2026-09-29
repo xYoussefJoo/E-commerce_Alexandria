@@ -2,6 +2,7 @@ using ECommerceMVC.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace ECommerceMVC.Data;
 
@@ -17,6 +18,14 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser, IdentityRole
     public DbSet<Order> Orders { get; set; }
     public DbSet<OrderItem> OrderItems { get; set; }
 
+    // OrderItem is deliberately NOT filtered like Product: order history must keep lines for
+    // books that were archived later. That makes EF warn that the required OrderItem -> Product
+    // navigation can point at a filtered-out row. It's safe here because order pages use the
+    // OrderItem.ProductName / UnitPrice snapshot and never load OrderItem.Product.
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) =>
+        optionsBuilder.ConfigureWarnings(w =>
+            w.Ignore(CoreEventId.PossibleIncorrectRequiredNavigationWithQueryFilterInteractionWarning));
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -25,6 +34,11 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser, IdentityRole
         modelBuilder.Entity<Product>()
             .Property(p => p.Price)
             .HasPrecision(10, 2);
+
+        // Archived books are hidden from every query (catalog, home page, category pages,
+        // dashboard) automatically, instead of each query having to remember to filter them.
+        modelBuilder.Entity<Product>()
+            .HasQueryFilter(p => !p.IsArchived);
 
         // Categories self-reference for the parent/child hierarchy.
         // Restrict matches the DB's NO ACTION constraint: can't delete a category that still has children.
@@ -58,6 +72,10 @@ public class ApplicationDbContext : IdentityDbContext<IdentityUser, IdentityRole
             .WithMany()
             .HasForeignKey(ci => ci.ProductId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // Matches the Product filter, so a cart never counts or shows an archived book.
+        modelBuilder.Entity<CartItem>()
+            .HasQueryFilter(ci => !ci.Product.IsArchived);
 
         modelBuilder.Entity<Order>()
             .Property(o => o.TotalAmount)

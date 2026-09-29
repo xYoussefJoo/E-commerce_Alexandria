@@ -40,22 +40,32 @@ public class ProductController : Controller
     {
         if (id is null) return NotFound();
 
+        // One atomic "ViewCount = ViewCount + 1" in SQL. Reading the count, adding 1 in C# and
+        // saving it back loses views when two people open the page at the same moment (both
+        // read 10, both write 11). Same idea as the stock decrement at checkout.
+        var updated = await _context.Products
+            .Where(p => p.ProductId == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(p => p.ViewCount, p => p.ViewCount + 1));
+
+        if (updated == 0) return NotFound();
+
         var product = await _context.Products
+            .AsNoTracking()
             .Include(p => p.Categories)
             .FirstOrDefaultAsync(p => p.ProductId == id);
 
         if (product is null) return NotFound();
 
-        product.ViewCount++;
-        await _context.SaveChangesAsync();
-
         var categoryIds = product.Categories.Select(c => c.CategoryId).ToList();
-        ViewBag.RelatedProducts = await _context.Products
+        // Pick 4 random related books from a small, bounded set of candidates. Shuffling in C#
+        // works on any database; OrderBy(Guid.NewGuid()) only translates on SQL Server.
+        var candidates = await _context.Products
             .Include(p => p.Categories)
             .Where(p => p.ProductId != id && p.Categories.Any(c => categoryIds.Contains(c.CategoryId)))
-            .OrderBy(p => Guid.NewGuid())
-            .Take(4)
+            .OrderByDescending(p => p.ViewCount)
+            .Take(20)
             .ToListAsync();
+        ViewBag.RelatedProducts = candidates.OrderBy(_ => Random.Shared.Next()).Take(4).ToList();
 
         return View(product);
     }
@@ -77,10 +87,14 @@ public class ProductController : Controller
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Create(ProductFormViewModel vm)
     {
-        var uploadedImageUrl = await TryValidateAndSaveCoverImageAsync(vm.CoverImageFile);
+        await ValidateCoverImageAsync(vm.CoverImageFile);
 
         if (ModelState.IsValid)
         {
+            // The file is written only once the whole form is valid, so a rejected form
+            // never leaves an unused image behind on disk.
+            var uploadedImageUrl = await SaveCoverImageAsync(vm.CoverImageFile);
+
             var product = new Product
             {
                 Name = vm.Name,
@@ -95,7 +109,7 @@ public class ProductController : Controller
             await AttachSelectedCategories(product, vm.SelectedCategoryIds);
 
             _context.Products.Add(product);
-            await _context.SaveChangesAsync();
+            await SaveChangesOrDeleteUploadAsync(uploadedImageUrl);
             TempData["Success"] = $"'{product.Name}' added to the catalog.";
             return RedirectToAction(nameof(Index));
         }
@@ -140,7 +154,7 @@ public class ProductController : Controller
     {
         if (id != vm.ProductId) return NotFound();
 
-        var uploadedImageUrl = await TryValidateAndSaveCoverImageAsync(vm.CoverImageFile);
+        await ValidateCoverImageAsync(vm.CoverImageFile);
 
         if (ModelState.IsValid)
         {
@@ -150,6 +164,7 @@ public class ProductController : Controller
 
             if (product is null) return NotFound();
 
+            var uploadedImageUrl = await SaveCoverImageAsync(vm.CoverImageFile);
             var oldImageUrl = product.CoverImageUrl;
 
             product.Name = vm.Name;
@@ -158,20 +173,19 @@ public class ProductController : Controller
             product.Price = vm.Price;
             product.Stock = vm.Stock;
 
-            if (uploadedImageUrl is not null)
-            {
-                product.CoverImageUrl = uploadedImageUrl;
-                DeleteUploadedImageIfLocal(oldImageUrl);
-            }
-            else
-            {
-                product.CoverImageUrl = vm.CoverImageUrl;
-            }
+            product.CoverImageUrl = uploadedImageUrl ?? vm.CoverImageUrl;
 
             product.Categories.Clear();
             await AttachSelectedCategories(product, vm.SelectedCategoryIds);
 
-            await _context.SaveChangesAsync();
+            await SaveChangesOrDeleteUploadAsync(uploadedImageUrl);
+
+            // Only remove the old cover once the new one is safely saved.
+            if (uploadedImageUrl is not null)
+            {
+                DeleteUploadedImageIfLocal(oldImageUrl);
+            }
+
             TempData["Success"] = $"'{product.Name}' updated.";
             return RedirectToAction(nameof(Index));
         }
@@ -201,12 +215,22 @@ public class ProductController : Controller
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeleteConfirmed(int id)
     {
+        // Archive instead of a hard delete: OrderItem -> Product is Restrict, so removing a book
+        // that has ever been ordered would fail with a FK violation. Archiving hides it from the
+        // store while order history keeps pointing at a real row. The cover image is kept for
+        // the same reason.
         var product = await _context.Products.FindAsync(id);
         if (product is not null)
         {
-            _context.Products.Remove(product);
+            product.IsArchived = true;
             await _context.SaveChangesAsync();
-            DeleteUploadedImageIfLocal(product.CoverImageUrl);
+
+            // It can't be bought any more, so drop it from every customer's cart.
+            await _context.CartItems
+                .IgnoreQueryFilters()
+                .Where(ci => ci.ProductId == id)
+                .ExecuteDeleteAsync();
+
             TempData["Success"] = $"'{product.Name}' removed from the catalog.";
         }
 
@@ -233,33 +257,39 @@ public class ProductController : Controller
             .OrderBy(c => c.Name)
             .ToListAsync();
 
-    // Validates an uploaded cover image and saves it to wwwroot/uploads/products.
-    // Adds a ModelState error and returns null if the file fails validation; returns
-    // null (with no error) if no file was uploaded at all, so the caller falls back
+    // Checks an uploaded cover image without saving it. Adds a ModelState error if the file
+    // fails validation; does nothing if no file was uploaded at all, so the caller falls back
     // to the plain CoverImageUrl text field.
-    private async Task<string?> TryValidateAndSaveCoverImageAsync(IFormFile? file)
+    private async Task ValidateCoverImageAsync(IFormFile? file)
     {
-        if (file is null || file.Length == 0) return null;
+        if (file is null || file.Length == 0) return;
 
         if (file.Length > MaxImageBytes)
         {
             ModelState.AddModelError(nameof(ProductFormViewModel.CoverImageFile), "Image must be 5 MB or smaller.");
-            return null;
+            return;
         }
 
         var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
         if (!AllowedImageExtensions.Contains(extension))
         {
             ModelState.AddModelError(nameof(ProductFormViewModel.CoverImageFile), "Only JPG, PNG, GIF, or WEBP images are allowed.");
-            return null;
+            return;
         }
 
         if (!await HasValidImageSignatureAsync(file))
         {
             ModelState.AddModelError(nameof(ProductFormViewModel.CoverImageFile), "That file doesn't look like a valid image. Only real JPG, PNG, GIF, or WEBP files are allowed.");
-            return null;
         }
+    }
 
+    // Saves an already-validated cover image to wwwroot/uploads/products and returns its URL,
+    // or null if no file was uploaded.
+    private async Task<string?> SaveCoverImageAsync(IFormFile? file)
+    {
+        if (file is null || file.Length == 0) return null;
+
+        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
         var uploadsFolder = Path.Combine(_environment.WebRootPath, "uploads", "products");
         Directory.CreateDirectory(uploadsFolder);
 
@@ -298,6 +328,21 @@ public class ProductController : Controller
         }
 
         return false;
+    }
+
+    // If the database save fails, the image we just wrote would be referenced by nothing,
+    // so remove it before letting the error continue.
+    private async Task SaveChangesOrDeleteUploadAsync(string? uploadedImageUrl)
+    {
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch
+        {
+            DeleteUploadedImageIfLocal(uploadedImageUrl);
+            throw;
+        }
     }
 
     // Cleans up a previously-uploaded local file when it's replaced or the product is

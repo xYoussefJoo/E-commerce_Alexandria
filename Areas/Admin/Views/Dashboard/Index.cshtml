@@ -3,12 +3,7 @@
 @{
     ViewData["Title"] = "Dashboard";
 
-    string StatusColor(OrderStatus s) => s switch
-    {
-        OrderStatus.Paid => "text-green-600",
-        OrderStatus.Cancelled => "text-red-600",
-        _ => "text-gold-600"
-    };
+    string StatusColor(OrderStatus s) => OrderStatusStyles.TextClass(s);
 }
 
 <div class="flex flex-wrap items-center justify-between gap-4 mb-8">
@@ -17,6 +12,7 @@
         <p class="text-ink/60 mt-1">Sales, customers, and catalog — all in one place.</p>
     </div>
     <div class="flex gap-3">
+        <a asp-controller="Orders" asp-action="Index" class="rounded-lg border border-brand-200 bg-white px-4 py-2 text-sm font-semibold text-brand-900 hover:bg-brand-50">Manage Orders</a>
         <a asp-controller="Product" asp-action="Index" class="rounded-lg border border-brand-200 bg-white px-4 py-2 text-sm font-semibold text-brand-900 hover:bg-brand-50">Manage Books</a>
         <a asp-controller="Category" asp-action="Index" class="rounded-lg border border-brand-200 bg-white px-4 py-2 text-sm font-semibold text-brand-900 hover:bg-brand-50">Manage Categories</a>
     </div>

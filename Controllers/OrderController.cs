@@ -1,5 +1,6 @@
 using ECommerceMVC.Data;
 using ECommerceMVC.Models;
+using ECommerceMVC.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -12,11 +13,13 @@ public class OrderController : Controller
 {
     private readonly ApplicationDbContext _context;
     private readonly UserManager<IdentityUser> _userManager;
+    private readonly OrderStatusService _orderStatus;
 
-    public OrderController(ApplicationDbContext context, UserManager<IdentityUser> userManager)
+    public OrderController(ApplicationDbContext context, UserManager<IdentityUser> userManager, OrderStatusService orderStatus)
     {
         _context = context;
         _userManager = userManager;
+        _orderStatus = orderStatus;
     }
 
     private const int PageSize = 10;
@@ -44,8 +47,40 @@ public class OrderController : Controller
         if (order is null) return NotFound();
 
         var userId = _userManager.GetUserId(User)!;
-        if (order.UserId != userId && !User.IsInRole("Admin")) return Forbid();
+        var isOwner = order.UserId == userId;
+        if (!isOwner && !User.IsInRole("Admin")) return Forbid();
 
+        // Only the customer who placed the order sees the Cancel button.
+        ViewBag.CanCancel = isOwner && order.CanBeCancelledByCustomer;
         return View(order);
+    }
+
+    // POST: /Order/Cancel/5
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Cancel(int id)
+    {
+        var userId = _userManager.GetUserId(User)!;
+        var order = await _context.Orders
+            .AsNoTracking()
+            .FirstOrDefaultAsync(o => o.OrderId == id);
+
+        if (order is null) return NotFound();
+        if (order.UserId != userId) return Forbid();
+
+        if (!order.CanBeCancelledByCustomer)
+        {
+            TempData["Error"] = "This order can't be cancelled any more.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        var result = await _orderStatus.ChangeStatusAsync(id, order.Status, OrderStatus.Cancelled);
+
+        if (result == StatusChangeResult.Changed)
+            TempData["Success"] = $"Order #{id} was cancelled.";
+        else
+            TempData["Error"] = "This order changed in the meantime and couldn't be cancelled. Please check it again.";
+
+        return RedirectToAction(nameof(Details), new { id });
     }
 }

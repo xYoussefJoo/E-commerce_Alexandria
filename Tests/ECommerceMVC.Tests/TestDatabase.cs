@@ -1,6 +1,7 @@
 using ECommerceMVC.Data;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace ECommerceMVC.Tests;
 
@@ -30,10 +31,11 @@ public sealed class TestDatabase : IDisposable
         context.Database.EnsureCreated();
     }
 
-    public ApplicationDbContext CreateContext()
+    public ApplicationDbContext CreateContext(params IInterceptor[] interceptors)
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseSqlite(_connectionString)
+            .AddInterceptors(interceptors)
             .Options;
         return new ApplicationDbContext(options);
     }

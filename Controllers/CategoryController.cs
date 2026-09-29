@@ -96,6 +96,11 @@ public class CategoryController : Controller
         {
             ModelState.AddModelError(nameof(category.ParentCategoryId), "A category cannot be its own parent.");
         }
+        else if (await WouldCreateLoopAsync(category.CategoryId, category.ParentCategoryId))
+        {
+            ModelState.AddModelError(nameof(category.ParentCategoryId),
+                "That parent is inside this category already, so it would create a loop. Pick a different parent.");
+        }
 
         if (ModelState.IsValid)
         {
@@ -163,6 +168,30 @@ public class CategoryController : Controller
         await _context.SaveChangesAsync();
         TempData["Success"] = $"Category '{category.Name}' deleted.";
         return RedirectToAction(nameof(Index));
+    }
+
+    // Categories must stay a tree. Giving a category a new parent creates a loop only if that
+    // parent is the category itself or one of its descendants, so walk UP from the new parent:
+    // reaching the category means a loop, reaching the top (null) means it's safe.
+    // O(depth) steps over an id -> parentId map loaded in one query.
+    private async Task<bool> WouldCreateLoopAsync(int categoryId, int? newParentId)
+    {
+        if (newParentId is null) return false;
+
+        var parentOf = await _context.Categories
+            .AsNoTracking()
+            .ToDictionaryAsync(c => c.CategoryId, c => c.ParentCategoryId);
+
+        var current = newParentId;
+        // Safety limit: if existing data is already broken (a loop not involving this
+        // category), stop instead of walking forever.
+        for (var steps = 0; current is not null && steps <= parentOf.Count; steps++)
+        {
+            if (current == categoryId) return true;
+            current = parentOf.GetValueOrDefault(current.Value);
+        }
+
+        return false;
     }
 
     private async Task<bool> CategoryExists(int id) =>

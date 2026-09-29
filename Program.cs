@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Security.Cryptography;
 using ECommerceMVC.Data;
+using ECommerceMVC.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,6 +19,8 @@ builder.Services.AddControllersWithViews();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddScoped<OrderStatusService>();
 
 builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
     {

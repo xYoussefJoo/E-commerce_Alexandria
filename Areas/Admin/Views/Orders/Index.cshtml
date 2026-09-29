@@ -1,0 +1,63 @@
+@model ECommerceMVC.Models.PagedResult<ECommerceMVC.Models.AdminOrderRow>
+
+@{
+    ViewData["Title"] = "Orders";
+}
+
+<div class="flex flex-wrap items-center justify-between gap-4 mb-8">
+    <div>
+        <h1 class="font-serif text-3xl font-bold text-brand-950">Orders</h1>
+        <p class="text-ink/60 mt-1">Move orders through their lifecycle. Cancelling puts the books back in stock.</p>
+    </div>
+    <a asp-controller="Dashboard" asp-action="Index" class="rounded-lg border border-brand-200 bg-white px-4 py-2 text-sm font-semibold text-brand-900 hover:bg-brand-50">&larr; Dashboard</a>
+</div>
+
+@if (!Model.Items.Any())
+{
+    <div class="text-center py-16 bg-white rounded-2xl border border-brand-100">
+        <h3 class="font-serif text-lg font-bold text-brand-950">No orders yet</h3>
+    </div>
+}
+else
+{
+    <div class="bg-white rounded-2xl border border-brand-100 divide-y divide-brand-50">
+        @foreach (var order in Model.Items)
+        {
+            <div class="flex flex-wrap items-center justify-between gap-4 p-4">
+                <div>
+                    <a asp-area="" asp-controller="Order" asp-action="Details" asp-route-id="@order.OrderId"
+                       class="text-sm font-semibold text-brand-950 hover:text-brand-700">Order #@order.OrderId</a>
+                    <p class="text-xs text-ink/60">@(order.Email ?? "(unknown)") &middot; @order.OrderDate.ToString("MMM d, yyyy") &middot; @order.PaymentMethod</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-3">
+                    <span class="text-sm font-bold text-brand-950">@order.TotalAmount.ToString("C")</span>
+                    <span class="text-xs font-semibold @OrderStatusStyles.TextClass(order.Status)">@order.Status</span>
+                    @foreach (var next in Order.NextStatuses(order.Status))
+                    {
+                        var isCancel = next == OrderStatus.Cancelled;
+                        <form asp-action="UpdateStatus" method="post" hx-boost="false"
+                              onsubmit="@(isCancel ? "return confirm('Cancel this order? The books go back into stock.');" : null)">
+                            <input type="hidden" name="id" value="@order.OrderId" />
+                            <input type="hidden" name="from" value="@order.Status" />
+                            <input type="hidden" name="to" value="@next" />
+                            <input type="hidden" name="page" value="@Model.PageNumber" />
+                            <button type="submit"
+                                    class="rounded-lg border px-3 py-1 text-xs font-semibold @(isCancel ? "border-red-200 text-red-600 hover:bg-red-50" : "border-brand-200 text-brand-900 hover:bg-brand-50")">
+                                @(isCancel ? "Cancel" : $"Mark {next}")
+                            </button>
+                        </form>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+
+    {
+        ViewData["PageNumber"] = Model.PageNumber;
+        ViewData["TotalPages"] = Model.TotalPages;
+        ViewData["HasPreviousPage"] = Model.HasPreviousPage;
+        ViewData["HasNextPage"] = Model.HasNextPage;
+        ViewData["Action"] = "Index";
+    }
+    <partial name="_Pagination" />
+}

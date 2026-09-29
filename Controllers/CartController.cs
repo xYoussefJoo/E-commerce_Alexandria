@@ -194,7 +194,10 @@ public class CartController : Controller
             OrderDate = DateTime.UtcNow,
             ShippingAddress = vm.ShippingAddress,
             PaymentMethod = vm.PaymentMethod,
-            Status = vm.PaymentMethod == PaymentMethod.CashOnDelivery ? OrderStatus.Pending : OrderStatus.Paid,
+            // Every order starts Pending, whatever the chosen method. No payment gateway is wired
+            // up yet, so choosing Credit Card / PayPal must not mark an order Paid when no money
+            // was actually taken - only a confirmed payment should move it to Paid.
+            Status = OrderStatus.Pending,
             TotalAmount = items.Sum(ci => ci.Product.Price * ci.Quantity)
         };
 

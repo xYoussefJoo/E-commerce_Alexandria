@@ -12,5 +12,9 @@ public class Product
     public int ViewCount { get; set; }
     public DateTime CreatedAt { get; set; }
 
+    // Soft delete: an archived book disappears from the store (see the query filter in
+    // ApplicationDbContext) but its row stays, so past orders that reference it keep working.
+    public bool IsArchived { get; set; }
+
     public ICollection<Category> Categories { get; set; } = new List<Category>();
 }

@@ -32,7 +32,7 @@ else
                 </div>
                 <div class="text-right">
                     <p class="text-sm font-bold text-brand-950">@order.TotalAmount.ToString("C")</p>
-                    <span class="text-xs font-semibold @(order.Status == ECommerceMVC.Models.OrderStatus.Paid ? "text-green-600" : order.Status == ECommerceMVC.Models.OrderStatus.Cancelled ? "text-red-600" : "text-gold-600")">@order.Status</span>
+                    <span class="text-xs font-semibold @OrderStatusStyles.TextClass(order.Status)">@order.Status</span>
                 </div>
             </a>
         }
